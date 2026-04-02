@@ -1,7 +1,7 @@
 # Agent Reliability Report
 
 ## Overview
-Python Code Review Agent based on LangGraph + Gemini 1.5 Flash.
+Python Code Review Agent based on LangGraph + Gemini 2.5 Flash.
 Tested with pytest + mocks, no real LLM calls during tests.
 
 ## Test Results
