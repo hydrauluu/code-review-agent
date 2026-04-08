@@ -6,8 +6,7 @@ Analyzes Python code for typing issues, code quality, and security vulnerabiliti
 ## What it does
 
 Accepts Python code via REST API and returns a structured review report with:
-- **Score** (0–10)
-- **Issues** — typing, quality, security, structure with severity levels
+- **issues** — typing, quality, security, structure with severity levels
 - **Suggestions** — concrete improvements
 - **Summary** — overall assessment
 

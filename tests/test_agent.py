@@ -1,6 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from app.agent.graph import build_graph, ReviewState
+from app.schemas import ReviewRequest
+from pydantic import ValidationError
 
 
 def make_state(code: str) -> ReviewState:
@@ -44,16 +46,12 @@ def test_accepts_python(mock_llm):
 
 
 def test_rejects_too_long_code():
-    from app.schemas import ReviewRequest
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         ReviewRequest(code="x" * 6000)
 
 
 def test_empty_code():
-    from app.schemas import ReviewRequest
-    from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
         ReviewRequest(code="")
