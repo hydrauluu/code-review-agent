@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from app.agent.graph import build_graph, ReviewState
+from app.agent.graph import build_graph, ReviewState, check_if_python, generate_report
 from app.schemas import ReviewRequest
 from pydantic import ValidationError
 
@@ -18,31 +18,42 @@ def make_state(code: str) -> ReviewState:
 
 
 @patch("app.agent.graph.llm")
-def test_rejects_non_python(mock_llm):
-    mock_llm.invoke.return_value = MagicMock(content="no")
-    graph = build_graph()
-    result = graph.invoke(make_state("console.log('hello')"))
-    assert result["report"]["error"] == "Only Python code is supported."
+def test_check_if_python_yes(mock_llm):
+    mock_llm.invoke.return_value = MagicMock(content="yes")
+    result = check_if_python(make_state("def foo(): pass"))
+    assert result["is_python"] is True
 
 
 @patch("app.agent.graph.llm")
-def test_accepts_python(mock_llm):
-    mock_llm.invoke.return_value = MagicMock(
-        content='{"score": 7, "issues": [], "suggestions": [], "summary": "ok"}'
-    )
+def test_check_if_python_no(mock_llm):
+    mock_llm.invoke.return_value = MagicMock(content="no")
+    result = check_if_python(make_state("console.log('hi')"))
+    assert result["is_python"] is False
+
+
+@patch("app.agent.graph.llm")
+def test_generate_report_invalid_json(mock_llm):
+    mock_llm.invoke.return_value = MagicMock(content="Invalid json{{")
+    state = make_state("def foo(): pass")
+    state["structure"] = "ok"
+    result = generate_report(state)
+    assert "error" in result["report"]
+
+
+@patch("app.agent.graph.llm")
+def test_full_graph_happy_path(mock_llm):
     mock_llm.invoke.side_effect = [
-        MagicMock(content="yes"),  # check_if_python
-        MagicMock(content="structure ok"),  # analyze_structure
-        MagicMock(content="no typing"),  # check_typing
-        MagicMock(content="no quality"),  # check_quality
-        MagicMock(content="no security"),  # check_security
+        MagicMock(content="yes"),
+        MagicMock(content="structure ok"),
+        MagicMock(content="no typing"),
+        MagicMock(content="no quality"),
+        MagicMock(content="no security"),
         MagicMock(
             content='{"score": 7, "issues": [], "suggestions": [], "summary": "ok"}'
-        ),  # generate_report
+        ),
     ]
-    graph = build_graph()
-    result = graph.invoke(make_state("def foo(): pass"))
-    assert "error" not in result["report"]
+    result = build_graph().invoke(make_state("def foo(): pass"))
+    assert result["report"]["score"] == 7
 
 
 def test_rejects_too_long_code():
